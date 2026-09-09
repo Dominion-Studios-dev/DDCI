@@ -1,0 +1,40 @@
+# ===== Secrets & credentials =====
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ===== Runtime artifacts =====
+ddci
+ddci_memory.db
+ddci_memory.db-wal
+ddci_memory.db-shm
+timing.csv
+ddci_billing.csv
+*.csv
+
+# ===== Build output =====
+build/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+*.a
+*.o
+*.obj
+*.so
+*.dylib
+
+# ===== IDE / editors =====
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ===== OS cruft =====
+.DS_Store
+Thumbs.db
+
+# ===== Logs =====
+*.log
