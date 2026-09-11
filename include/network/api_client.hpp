@@ -58,6 +58,7 @@ public:
     void set_usage_tracker(telemetry::UsageTracker* tracker);
     void set_timing_log(net::TimingLog* logw);
     void set_endpoint_health(net::EndpointHealth* health);
+    void set_system_vibe(std::string_view vibe) noexcept;
 
     [[nodiscard]] const net::RequestTiming& last_request_timing() const noexcept {
         return last_request_timing_;
@@ -66,6 +67,8 @@ public:
 private:
     [[nodiscard]] nlohmann::json make_chat_payload(
         const std::vector<core::Message>& messages) const;
+
+    void prepend_vibe(nlohmann::json& message_array) const;
 
     void record_zero_usage();
 
@@ -79,6 +82,7 @@ private:
 
     const core::Config& config_;
     telemetry::UsageTracker* tracker_ = nullptr;
+    std::string_view vibe_;
 
     std::unique_ptr<net::ConnectionManager> conn_;
 

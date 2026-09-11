@@ -1,4 +1,5 @@
 #include "core/config.hpp"
+#include "core/vibe.hpp"
 #include "ddci/mem/arena.hpp"
 #include "ddci/net/endpoint_health.hpp"
 #include "ddci/net/timing_log.hpp"
@@ -326,17 +327,25 @@ int main(int argc, char** argv) {
     ddci::telemetry::UsageTracker tracker(config.model_name);
     ddci::network::APIClient api_client(config);
 
+    ddci::core::VibeCache vibe;
+    if (!vibe.load().ok()) {
+        std::cerr << "[DDCI] Warning: system vibe unavailable — "
+                     "continuing without vibe injection.\n";
+    }
+
     ddci::net::TimingLog timing_log("timing.csv");
     ddci::net::EndpointHealth health(config.groq_api_url);
 
     api_client.set_usage_tracker(&tracker);
     api_client.set_timing_log(&timing_log);
     api_client.set_endpoint_health(&health);
+    api_client.set_system_vibe(vibe.text());
 
     ddci::engine::GoTEngine got(config, api_client);
     got.set_usage_tracker(&tracker);
     got.set_timing_log(&timing_log);
     got.set_endpoint_health(&health);
+    got.set_system_vibe(vibe.text());
 
     health.set_auth_bearer(config.groq_api_key);
     health.start();

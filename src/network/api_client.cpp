@@ -89,6 +89,10 @@ void APIClient::set_endpoint_health(net::EndpointHealth* health) {
     health_ = health;
 }
 
+void APIClient::set_system_vibe(std::string_view vibe) noexcept {
+    vibe_ = vibe;
+}
+
 void APIClient::emit_request_timing(net::RequestTiming& t) noexcept {
     t.model = config_.model_name;
     t.endpoint = conn_ ? conn_->endpoint() : std::string_view{};
@@ -201,11 +205,24 @@ core::Result<std::string> APIClient::post_and_extract_impl(
 core::Result<std::string> APIClient::chat(std::string_view user_message) {
     json payload;
     payload["model"] = config_.model_name;
-    payload["messages"] = json::array({
+    json message_array = json::array({
         {{"role", "user"}, {"content", std::string(user_message)}}
     });
+    prepend_vibe(message_array);
+    payload["messages"] = std::move(message_array);
 
     return post_and_extract(std::move(payload));
+}
+
+void APIClient::prepend_vibe(nlohmann::json& message_array) const {
+    if (vibe_.empty() || !message_array.is_array()) {
+        return;
+    }
+    json vibe_msg = json::object({
+        {"role", "system"},
+        {"content", std::string(vibe_.data(), vibe_.size())}
+    });
+    message_array.insert(message_array.begin(), std::move(vibe_msg));
 }
 
 nlohmann::json APIClient::make_chat_payload(
@@ -227,6 +244,7 @@ nlohmann::json APIClient::make_chat_payload(
             {"content", msg.content}
         });
     }
+    prepend_vibe(message_array);
     payload["messages"] = std::move(message_array);
     return payload;
 }
@@ -515,7 +533,12 @@ core::Result<std::string> APIClient::chat_history(
     json payload;
     payload["model"] = config_.model_name;
 
-    payload["messages"] = messages;
+    json message_array = json::array();
+    for (const auto& msg : messages) {
+        message_array.push_back(msg);
+    }
+    prepend_vibe(message_array);
+    payload["messages"] = std::move(message_array);
 
     return post_and_extract(std::move(payload));
 }

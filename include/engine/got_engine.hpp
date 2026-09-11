@@ -72,6 +72,7 @@ public:
     void set_usage_tracker(telemetry::UsageTracker* tracker) noexcept;
     void set_timing_log(net::TimingLog* log) noexcept;
     void set_endpoint_health(net::EndpointHealth* health) noexcept;
+    void set_system_vibe(std::string_view vibe) noexcept;
 
     [[nodiscard]] core::Result<std::string> run(std::string_view user_prompt);
 

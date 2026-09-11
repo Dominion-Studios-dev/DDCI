@@ -222,6 +222,13 @@ void GoTEngine::set_endpoint_health(net::EndpointHealth* health) noexcept {
     }
 }
 
+void GoTEngine::set_system_vibe(std::string_view vibe) noexcept {
+    primary_.set_system_vibe(vibe);
+    for (const auto& client : branch_clients_) {
+        client->set_system_vibe(vibe);
+    }
+}
+
 std::span<const GoTEngine::Node> GoTEngine::nodes() const noexcept {
     return nodes_ != nullptr ? std::span<const Node>(nodes_, node_count_)
                              : std::span<const Node>{};

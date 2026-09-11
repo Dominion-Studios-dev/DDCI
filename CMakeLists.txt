@@ -95,6 +95,7 @@ FetchContent_MakeAvailable(mimalloc)
 # ==========================================================================
 add_library(ddci_core STATIC
     src/core/config.cpp
+    src/core/vibe.cpp
     src/ui/ui_render.cpp
     src/workspace/workspace_context.cpp
 )
