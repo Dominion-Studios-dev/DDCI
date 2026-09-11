@@ -3,8 +3,8 @@
 #include <sqlite3.h>
 
 #include <sys/stat.h>
-#include <unistd.h>
 
+#include <algorithm>
 #include <utility>
 
 namespace ddci::storage {
@@ -267,7 +267,166 @@ core::Result<void> DatabaseClient::init_schema() {
         "CREATE INDEX IF NOT EXISTS idx_l3_category ON l3_facts(category)");
     if (!r4.ok()) return r4;
 
+    auto r5 = execute(
+        "CREATE TABLE IF NOT EXISTS user_config ("
+        "  key TEXT PRIMARY KEY,"
+        "  value TEXT NOT NULL DEFAULT ''"
+        ")");
+    if (!r5.ok()) return r5;
+
+    auto r6 = execute(
+        "CREATE TABLE IF NOT EXISTS chat_history ("
+        "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "  role TEXT NOT NULL,"
+        "  content TEXT NOT NULL,"
+        "  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP"
+        ")");
+    if (!r6.ok()) return r6;
+
     return core::Result<void>::success();
+}
+
+core::Result<void> DatabaseClient::set_user_config(std::string_view key,
+                                                   std::string_view value) {
+    if (!db_) {
+        return core::Result<void>::failure(core::ErrorCode::DatabaseError);
+    }
+
+    auto prep_result = prepare(
+        "INSERT INTO user_config (key, value) VALUES (?1, ?2) "
+        "ON CONFLICT(key) DO UPDATE SET value = excluded.value");
+    if (!prep_result.ok()) {
+        return core::Result<void>::failure(prep_result.error());
+    }
+
+    auto stmt = std::move(prep_result).value();
+
+    auto b1 = stmt.bind_text(1, key);
+    if (!b1.ok()) return b1;
+
+    auto b2 = stmt.bind_text(2, value);
+    if (!b2.ok()) return b2;
+
+    auto step_result = stmt.step();
+    if (!step_result.ok()) {
+        return core::Result<void>::failure(step_result.error());
+    }
+    return core::Result<void>::success();
+}
+
+core::Result<std::string> DatabaseClient::get_user_config(
+    std::string_view key) {
+    if (!db_) {
+        return core::Result<std::string>::failure(
+            core::ErrorCode::DatabaseError);
+    }
+
+    auto prep_result = prepare("SELECT value FROM user_config WHERE key = ?1");
+    if (!prep_result.ok()) {
+        return core::Result<std::string>::failure(prep_result.error());
+    }
+
+    auto stmt = std::move(prep_result).value();
+
+    auto b1 = stmt.bind_text(1, key);
+    if (!b1.ok()) {
+        return core::Result<std::string>::failure(b1.error());
+    }
+
+    auto step_result = stmt.step();
+    if (!step_result.ok()) {
+        return core::Result<std::string>::failure(step_result.error());
+    }
+    if (!step_result.value()) {
+        return core::Result<std::string>("");
+    }
+    return core::Result<std::string>(std::string(stmt.column_text(0)));
+}
+
+core::Result<void> DatabaseClient::set_user_name(std::string_view name) {
+    return set_user_config("user_name", name);
+}
+
+core::Result<std::string> DatabaseClient::get_user_name() {
+    return get_user_config("user_name");
+}
+
+core::Result<void> DatabaseClient::log_message(std::string_view role,
+                                               std::string_view content) {
+    if (!db_) {
+        return core::Result<void>::failure(core::ErrorCode::DatabaseError);
+    }
+
+    auto prep_result = prepare(
+        "INSERT INTO chat_history (role, content) VALUES (?1, ?2)");
+    if (!prep_result.ok()) {
+        return core::Result<void>::failure(prep_result.error());
+    }
+
+    auto stmt = std::move(prep_result).value();
+
+    auto b1 = stmt.bind_text(1, role);
+    if (!b1.ok()) return b1;
+
+    auto b2 = stmt.bind_text(2, content);
+    if (!b2.ok()) return b2;
+
+    auto step_result = stmt.step();
+    if (!step_result.ok()) {
+        return core::Result<void>::failure(step_result.error());
+    }
+    return core::Result<void>::success();
+}
+
+core::Result<std::vector<ChatMessage>> DatabaseClient::get_recent_history(
+    int limit) {
+    if (!db_) {
+        return core::Result<std::vector<ChatMessage>>::failure(
+            core::ErrorCode::DatabaseError);
+    }
+    if (limit <= 0) {
+        return core::Result<std::vector<ChatMessage>>(
+            std::vector<ChatMessage>{});
+    }
+
+    auto prep_result = prepare(
+        "SELECT role, content FROM chat_history ORDER BY id DESC LIMIT ?1");
+    if (!prep_result.ok()) {
+        return core::Result<std::vector<ChatMessage>>::failure(
+            prep_result.error());
+    }
+
+    auto stmt = std::move(prep_result).value();
+
+    auto b1 = stmt.bind_int64(1, limit);
+    if (!b1.ok()) {
+        return core::Result<std::vector<ChatMessage>>::failure(b1.error());
+    }
+
+    std::vector<ChatMessage> rows;
+    rows.reserve(static_cast<std::size_t>(limit));
+
+    for (;;) {
+        auto step_result = stmt.step();
+        if (!step_result.ok()) {
+            return core::Result<std::vector<ChatMessage>>::failure(
+                step_result.error());
+        }
+        if (!step_result.value()) {
+            break;
+        }
+        ChatMessage msg;
+        msg.role = std::string(stmt.column_text(0));
+        msg.content = std::string(stmt.column_text(1));
+        rows.push_back(std::move(msg));
+    }
+
+    std::reverse(rows.begin(), rows.end());
+    return core::Result<std::vector<ChatMessage>>(std::move(rows));
+}
+
+core::Result<void> DatabaseClient::clear_chat_history() {
+    return execute("DELETE FROM chat_history");
 }
 
 }

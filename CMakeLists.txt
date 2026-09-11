@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(DDCI VERSION 1.0.0 LANGUAGES CXX)
+project(DDCI VERSION 1.1.4 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -91,10 +91,12 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(mimalloc)
 
 # ==========================================================================
-# Core library (config.cpp)
+# Core library (config.cpp, UI render engine, Git workspace telemetry)
 # ==========================================================================
 add_library(ddci_core STATIC
     src/core/config.cpp
+    src/ui/ui_render.cpp
+    src/workspace/workspace_context.cpp
 )
 
 target_include_directories(ddci_core PUBLIC
@@ -315,6 +317,8 @@ install(TARGETS ddci_core ddci_storage ddci_memory ddci_network ddci_net ddci_en
 )
 
 install(DIRECTORY include/core/ DESTINATION include/ddci/core FILES_MATCHING PATTERN "*.hpp")
+install(DIRECTORY include/ui/ DESTINATION include/ddci/ui FILES_MATCHING PATTERN "*.hpp")
+install(DIRECTORY include/workspace/ DESTINATION include/ddci/workspace FILES_MATCHING PATTERN "*.hpp")
 install(DIRECTORY include/storage/ DESTINATION include/ddci/storage FILES_MATCHING PATTERN "*.hpp")
 install(DIRECTORY include/memory/ DESTINATION include/ddci/memory FILES_MATCHING PATTERN "*.hpp")
 install(DIRECTORY include/network/ DESTINATION include/ddci/network FILES_MATCHING PATTERN "*.hpp")

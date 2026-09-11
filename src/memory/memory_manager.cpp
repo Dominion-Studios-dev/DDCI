@@ -1,7 +1,6 @@
 #include "memory/memory_manager.hpp"
 #include "memory/token_utils.hpp"
 
-#include <algorithm>
 #include <utility>
 
 namespace ddci::memory {

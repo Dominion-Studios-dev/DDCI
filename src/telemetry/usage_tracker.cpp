@@ -2,7 +2,6 @@
 
 #include <chrono>
 #include <cstdio>
-#include <cstring>
 #include <ctime>
 #include <iomanip>
 #include <sstream>

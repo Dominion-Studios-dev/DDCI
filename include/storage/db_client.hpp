@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
+#include <vector>
 
 struct sqlite3;
 struct sqlite3_stmt;
@@ -41,6 +42,11 @@ private:
     sqlite3_stmt* stmt_{nullptr};
 };
 
+struct ChatMessage {
+    std::string role;
+    std::string content;
+};
+
 class DatabaseClient {
 public:
     explicit DatabaseClient(std::string db_path);
@@ -57,6 +63,19 @@ public:
     [[nodiscard]] core::Result<void> init_schema();
     [[nodiscard]] core::Result<void> insert_l2_summary(
         std::string_view category, std::string_view content, double importance);
+
+    [[nodiscard]] core::Result<void> set_user_config(std::string_view key,
+                                                     std::string_view value);
+    [[nodiscard]] core::Result<std::string> get_user_config(
+        std::string_view key);
+    [[nodiscard]] core::Result<void> set_user_name(std::string_view name);
+    [[nodiscard]] core::Result<std::string> get_user_name();
+
+    [[nodiscard]] core::Result<void> log_message(std::string_view role,
+                                                 std::string_view content);
+    [[nodiscard]] core::Result<std::vector<ChatMessage>> get_recent_history(
+        int limit);
+    [[nodiscard]] core::Result<void> clear_chat_history();
 
     void close();
 

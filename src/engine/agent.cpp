@@ -1,5 +1,7 @@
 #include "engine/agent.hpp"
 
+#include "workspace/workspace_context.hpp"
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -23,7 +25,38 @@ core::Result<void> Agent::init() {
         return schema;
     }
 
-    auto result = memory_.add_message(core::Role::System, kSystemPrompt, 1.0);
+    std::string prompt(kSystemPrompt);
+    auto name = db_.get_user_name();
+    if (name.ok() && !name.value().empty()) {
+        prompt += " The user's name is ";
+        prompt += name.value();
+        prompt += " — always address them by name.";
+    }
+
+    const workspace::GitState git_state = workspace::detect_git_state();
+    if (git_state.present) {
+        prompt += " Workspace telemetry (git): branch '";
+        prompt += git_state.branch;
+        prompt += "', ";
+        prompt += std::to_string(git_state.modified);
+        prompt += " modified, ";
+        prompt += std::to_string(git_state.untracked);
+        prompt += " untracked.";
+    }
+
+    auto history = db_.get_recent_history(20);
+    if (history.ok()) {
+        for (const auto& msg : history.value()) {
+            const core::Role role = (msg.role == "assistant")
+                                        ? core::Role::Assistant
+                                        : core::Role::User;
+            if (!memory_.add_message(role, msg.content, 1.0).ok()) {
+                break;
+            }
+        }
+    }
+
+    auto result = memory_.add_message(core::Role::System, prompt, 1.0);
     if (!result.ok()) {
         std::cerr << "[ENGINE] Failed to seed system prompt: "
                   << static_cast<int>(result.error()) << "\n";
