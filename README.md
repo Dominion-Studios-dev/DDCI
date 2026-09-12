@@ -1,4 +1,4 @@
-# DDCI - Deterministic Distributed Context Intelligence (v1.2.4)
+# DDCI - Dominion Distributed Context Intelligence (v1.2.4)
 
 A fast, single-binary AI chat assistant for your terminal, powered by Groq's low-latency inference engine.
 
